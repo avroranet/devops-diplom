@@ -4,7 +4,7 @@ terraform {
       s3 = "https://storage.yandexcloud.net"
     }
     
-    bucket = "aleksey-naumov"
+    bucket = "kshatyy2"
     region = "ru-central1"
     key    = "terraform.tfstate"
    
