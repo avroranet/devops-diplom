@@ -3,11 +3,6 @@ name: Terraform CI/CD
 on:
   workflow_dispatch:
 
-#on:
-#  push:
-#    branches:
-#      - main
-
 env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -31,10 +26,14 @@ jobs:
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
 
+    - name: Set AWS_EC2_METADATA_DISABLED
+      run: echo "export AWS_EC2_METADATA_DISABLED=true" >> $GITHUB_ENV
+
     - name: Create service account key file
       run: |
         mkdir -p ~/.ssh
         echo "${{ secrets.SA_IAM_KEY }}" | base64 --decode > ~/.ssh/sa-iam.json
+
     - name: Set up SSH
       run: |
         mkdir -p ~/.ssh
@@ -46,8 +45,6 @@ jobs:
     - name: Terraform Init
       working-directory: terraform
       run: terraform init
-
-     
       
     - name: Terraform Validate
       working-directory: terraform
@@ -66,14 +63,17 @@ jobs:
       run: |
         terraform output -json > ../k8s/tf_outputs.json
         jq -r 'to_entries | map(.key + ": " + .value.value) | .[]' ../k8s/tf_outputs.json > ../k8s/tf_outputs.yml
+
     - name: Install GitHub CLI
       run: |
         sudo apt-get install gh
+
     - name: Login to GitHub
       env:
         PAT: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
       run: |
         echo "$PAT" | gh auth login --with-token
+
     - name: Set secret in another repository
       run: |
         my_registry_id=$(grep 'my_registry_id:'  k8s/tf_outputs.yml | cut -d ' ' -f 2)
